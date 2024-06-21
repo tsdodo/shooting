@@ -100,7 +100,7 @@ while running:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
                     selected_button = 'retry' if selected_button == 'quit' else 'quit'
-                if event.key == pygame.K_SPACE:
+                if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     if selected_button == 'retry':
                         reset_game()
                         game_over = False
