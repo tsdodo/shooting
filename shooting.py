@@ -1,5 +1,6 @@
 import pygame
 import random
+import time
 
 # Pygameの初期化
 pygame.init()
@@ -174,7 +175,8 @@ while running:
                 player_lives -= 1
                 if player_lives == 0:
                     game_over = True
-        
+                time.sleep(3)  # 3秒間スリープ
+
         for enemy_beam in enemy_beams[:]:
             if (enemy_beam[0] < player_x + player_width and
                     enemy_beam[0] + beam_width > player_x and
@@ -186,6 +188,7 @@ while running:
                 player_lives -= 1
                 if player_lives == 0:
                     game_over = True
+                time.sleep(3)  # 3秒間スリープ
         
         # 爆発の更新
         for explosion in explosions[:]:
