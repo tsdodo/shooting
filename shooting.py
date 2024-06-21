@@ -13,6 +13,8 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 white = (255, 255, 255)
 black = (0, 0, 0)
 red = (255, 0, 0)
+green = (0, 255, 0)
+blue = (0, 0, 255)
 
 # プレイヤー設定
 player_width = 50
@@ -52,12 +54,27 @@ enemies = []
 # フォント設定
 font = pygame.font.Font(None, 36)
 
+# ボタンの設定
+button_font = pygame.font.Font(None, 48)
+retry_button_rect = pygame.Rect(screen_width // 2 - 100, screen_height // 2, 200, 50)
+quit_button_rect = pygame.Rect(screen_width // 2 - 100, screen_height // 2 + 60, 200, 50)
+selected_button = 'retry'
+
 def show_game_over():
     screen.fill(black)
     game_over_text = font.render("GAME OVER", True, white)
-    retry_text = font.render("Press R to Retry or Q to Quit", True, white)
     screen.blit(game_over_text, (screen_width // 2 - 100, screen_height // 2 - 50))
-    screen.blit(retry_text, (screen_width // 2 - 200, screen_height // 2))
+
+    # リトライボタン
+    pygame.draw.rect(screen, green if selected_button == 'retry' else white, retry_button_rect)
+    retry_text = button_font.render("Retry", True, black)
+    screen.blit(retry_text, (retry_button_rect.x + 50, retry_button_rect.y + 5))
+
+    # 終了ボタン
+    pygame.draw.rect(screen, green if selected_button == 'quit' else white, quit_button_rect)
+    quit_text = button_font.render("Quit", True, black)
+    screen.blit(quit_text, (quit_button_rect.x + 60, quit_button_rect.y + 5))
+
     pygame.display.flip()
 
 def reset_game():
@@ -81,11 +98,14 @@ while running:
             running = False
         if game_over:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    reset_game()
-                    game_over = False
-                if event.key == pygame.K_q:
-                    running = False
+                if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
+                    selected_button = 'retry' if selected_button == 'quit' else 'quit'
+                if event.key == pygame.K_SPACE:
+                    if selected_button == 'retry':
+                        reset_game()
+                        game_over = False
+                    elif selected_button == 'quit':
+                        running = False
     
     if not game_over:
         # プレイヤーの移動
