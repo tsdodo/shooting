@@ -87,11 +87,9 @@ def show_game_over():
     pygame.display.flip()
 
 def reset_game():
-    global player_x, player_y, player_lives, score, beams, enemy_beams, enemies, explosions
+    global player_x, player_y, beams, enemy_beams, enemies, explosions
     player_x = 10
     player_y = screen_height // 2 - player_height // 2
-    player_lives = 3
-    score = 0
     beams = []
     enemy_beams = []
     enemies = []
@@ -121,6 +119,8 @@ while running:
                 if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     if selected_button == 'retry':
                         reset_game()
+                        player_lives = 3
+                        score = 0
                         game_over = False
                     elif selected_button == 'quit':
                         running = False
@@ -207,6 +207,7 @@ while running:
             draw_explosions()  # 爆発を描画して更新
             pygame.display.flip()
             time.sleep(3)  # 3秒間スリープ
+            reset_game()
 
         # 画面の描画
         screen.fill(black)
