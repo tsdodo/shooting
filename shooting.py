@@ -32,13 +32,19 @@ beam_width = 5
 beam_height = 10
 beam_speed = 7
 
+# 爆発設定
+explosion_duration = 30  # 爆発が表示されるフレーム数
+
 # プレイヤー画像の読み込み
-player_img = pygame.Surface((player_width, player_height))
-player_img.fill(white)  # 仮のプレイヤー画像として白い四角を使用
+player_img = pygame.image.load('player.png')
+player_img = pygame.transform.scale(player_img, (player_width, player_height))
 
 # 敵画像の読み込み
-enemy_img = pygame.Surface((enemy_width, enemy_height))
-enemy_img.fill(red)  # 仮の敵画像として赤い四角を使用
+enemy_img = pygame.image.load('enemy.png')
+enemy_img = pygame.transform.scale(enemy_img, (enemy_width, enemy_height))
+
+# 爆発画像の読み込み
+explosion_img = pygame.image.load('explosion.png')
 
 # ゲームの変数
 player_x = 10
@@ -50,6 +56,7 @@ score = 0
 beams = []
 enemy_beams = []
 enemies = []
+explosions = []  # 爆発のリスト
 
 # フォント設定
 font = pygame.font.Font(None, 36)
@@ -78,7 +85,7 @@ def show_game_over():
     pygame.display.flip()
 
 def reset_game():
-    global player_x, player_y, player_lives, score, beams, enemy_beams, enemies
+    global player_x, player_y, player_lives, score, beams, enemy_beams, enemies, explosions
     player_x = 10
     player_y = screen_height // 2 - player_height // 2
     player_lives = 3
@@ -86,6 +93,7 @@ def reset_game():
     beams = []
     enemy_beams = []
     enemies = []
+    explosions = []
 
 # ゲームループ
 running = True
@@ -151,6 +159,7 @@ while running:
                 if (enemy[0] < beam[0] < enemy[0] + enemy_width and
                         enemy[1] < beam[1] < enemy[1] + enemy_height):
                     if enemy in enemies and beam in beams:
+                        explosions.append([enemy[0], enemy[1], explosion_duration])
                         enemies.remove(enemy)
                         beams.remove(beam)
                         score += 10
@@ -159,6 +168,7 @@ while running:
                     enemy[1] < player_y + player_height and
                     enemy[1] + enemy_height > player_y):
                 if enemy in enemies:
+                    explosions.append([enemy[0], enemy[1], explosion_duration])
                     enemies.remove(enemy)
                 player_lives -= 1
                 if player_lives == 0:
@@ -170,10 +180,17 @@ while running:
                     enemy_beam[1] < player_y + player_height and
                     enemy_beam[1] + beam_height > player_y):
                 if enemy_beam in enemy_beams:
+                    explosions.append([player_x, player_y, explosion_duration])
                     enemy_beams.remove(enemy_beam)
                 player_lives -= 1
                 if player_lives == 0:
                     game_over = True
+        
+        # 爆発の更新
+        for explosion in explosions[:]:
+            explosion[2] -= 1
+            if explosion[2] <= 0:
+                explosions.remove(explosion)
         
         # 画面の描画
         screen.fill(black)
@@ -192,6 +209,10 @@ while running:
         # 敵ビームの描画
         for enemy_beam in enemy_beams:
             pygame.draw.rect(screen, red, (enemy_beam[0], enemy_beam[1], beam_width, beam_height))
+        
+        # 爆発の描画
+        for explosion in explosions:
+            screen.blit(explosion_img, (explosion[0], explosion[1]))
         
         # スコアとライフの描画
         score_text = font.render(f'Score: {score}', True, white)
