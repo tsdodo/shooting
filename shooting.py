@@ -112,6 +112,15 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN and game_over:
+            mouse_pos = event.pos
+            if retry_button_rect.collidepoint(mouse_pos):
+                reset_game()
+                player_lives = 3
+                score = 0
+                game_over = False
+            elif quit_button_rect.collidepoint(mouse_pos):
+                running = False
         if game_over:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
