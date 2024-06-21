@@ -45,6 +45,7 @@ enemy_img = pygame.transform.scale(enemy_img, (enemy_width, enemy_height))
 
 # 爆発画像の読み込み
 explosion_img = pygame.image.load('explosion.png')
+explosion_img = pygame.transform.scale(explosion_img, (player_width, player_height))
 
 # ゲームの変数
 player_x = 10
