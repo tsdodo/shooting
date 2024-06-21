@@ -53,9 +53,15 @@ pygame.mixer.music.play(-1)  # ループ再生
 player_img = pygame.image.load('player.png')
 player_img = pygame.transform.scale(player_img, (player_width, player_height))
 
+# プレイヤーのマスク作成
+player_mask = pygame.mask.from_surface(player_img)
+
 # 敵画像の読み込み
 enemy_img = pygame.image.load('enemy.png')
 enemy_img = pygame.transform.scale(enemy_img, (enemy_width, enemy_height))
+
+# 敵のマスク作成
+enemy_mask = pygame.mask.from_surface(enemy_img)
 
 # 爆発画像の読み込み
 explosion_img = pygame.image.load('explosion.png')
@@ -118,6 +124,11 @@ def draw_explosions():
             explosions.remove(explosion)
     pygame.display.flip()
 
+def check_collision(mask1, x1, y1, mask2, x2, y2):
+    offset_x = x2 - x1
+    offset_y = y2 - y1
+    return mask1.overlap(mask2, (offset_x, offset_y)) is not None
+
 # ゲームループ
 running = True
 game_over = False
@@ -131,8 +142,6 @@ while running:
             mouse_pos = event.pos
             if retry_button_rect.collidepoint(mouse_pos):
                 reset_game()
-                player_lives = 3
-                score = 0
                 game_over = False
             elif quit_button_rect.collidepoint(mouse_pos):
                 running = False
@@ -143,8 +152,6 @@ while running:
                 if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     if selected_button == 'retry':
                         reset_game()
-                        player_lives = 3
-                        score = 0
                         game_over = False
                     elif selected_button == 'quit':
                         running = False
@@ -190,24 +197,22 @@ while running:
         
         # 衝突判定
         player_hit = False
+        enemies_to_remove = []
+        beams_to_remove = []
+        enemy_beams_to_remove = []
 
-        for enemy in enemies[:]:
-            for beam in beams[:]:
-                if (enemy[0] < beam[0] < enemy[0] + enemy_width and
-                        enemy[1] < beam[1] < enemy[1] + enemy_height):
-                    if enemy in enemies and beam in beams:
-                        explosions.append([enemy[0], enemy[1], explosion_duration])
-                        enemies.remove(enemy)
-                        beams.remove(beam)
-                        score += 10
-                        enemy_explosion_sound.play()  # 敵機の爆発音を再生
-            if (enemy[0] < player_x + player_width and
-                    enemy[0] + enemy_width > player_x and
-                    enemy[1] < player_y + player_height and
-                    enemy[1] + enemy_height > player_y):
-                if enemy in enemies:
+        for enemy in enemies:
+            for beam in beams:
+                if check_collision(enemy_mask, enemy[0], enemy[1], pygame.mask.Mask((beam_width, beam_height), True), beam[0], beam[1]):
                     explosions.append([enemy[0], enemy[1], explosion_duration])
-                    enemies.remove(enemy)
+                    enemies_to_remove.append(enemy)
+                    beams_to_remove.append(beam)
+                    score += 10
+                    enemy_explosion_sound.play()  # 敵機の爆発音を再生
+
+            if check_collision(player_mask, player_x, player_y, enemy_mask, enemy[0], enemy[1]):
+                explosions.append([enemy[0], enemy[1], explosion_duration])
+                enemies_to_remove.append(enemy)
                 player_lives -= 1
                 player_hit = True
                 player_explosion_sound.play()  # プレイヤー機の爆発音を再生
@@ -216,14 +221,10 @@ while running:
                     pygame.mixer.music.load(game_over_music)
                     pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
 
-        for enemy_beam in enemy_beams[:]:
-            if (enemy_beam[0] < player_x + player_width and
-                    enemy_beam[0] + beam_width > player_x and
-                    enemy_beam[1] < player_y + player_height and
-                    enemy_beam[1] + beam_height > player_y):
-                if enemy_beam in enemy_beams:
-                    explosions.append([player_x, player_y, explosion_duration])
-                    enemy_beams.remove(enemy_beam)
+        for enemy_beam in enemy_beams:
+            if check_collision(player_mask, player_x, player_y, pygame.mask.Mask((beam_width, beam_height), True), enemy_beam[0], enemy_beam[1]):
+                explosions.append([player_x, player_y, explosion_duration])
+                enemy_beams_to_remove.append(enemy_beam)
                 player_lives -= 1
                 player_hit = True
                 player_explosion_sound.play()  # プレイヤー機の爆発音を再生
@@ -231,6 +232,17 @@ while running:
                     game_over = True
                     pygame.mixer.music.load(game_over_music)
                     pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
+
+        # リスト外で削除
+        for enemy in enemies_to_remove:
+            if enemy in enemies:
+                enemies.remove(enemy)
+        for beam in beams_to_remove:
+            if beam in beams:
+                beams.remove(beam)
+        for enemy_beam in enemy_beams_to_remove:
+            if enemy_beam in enemy_beams:
+                enemy_beams.remove(enemy_beam)
 
         # 爆発の更新
         draw_explosions()
