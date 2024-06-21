@@ -97,6 +97,14 @@ def reset_game():
     enemies = []
     explosions = []
 
+def draw_explosions():
+    for explosion in explosions[:]:
+        screen.blit(explosion_img, (explosion[0], explosion[1]))
+        explosion[2] -= 1
+        if explosion[2] <= 0:
+            explosions.remove(explosion)
+    pygame.display.flip()
+
 # ゲームループ
 running = True
 game_over = False
@@ -156,6 +164,8 @@ while running:
                 enemy_beams.remove(enemy_beam)
         
         # 衝突判定
+        player_hit = False
+
         for enemy in enemies[:]:
             for beam in beams[:]:
                 if (enemy[0] < beam[0] < enemy[0] + enemy_width and
@@ -173,9 +183,9 @@ while running:
                     explosions.append([enemy[0], enemy[1], explosion_duration])
                     enemies.remove(enemy)
                 player_lives -= 1
+                player_hit = True
                 if player_lives == 0:
                     game_over = True
-                time.sleep(3)  # 3秒間スリープ
 
         for enemy_beam in enemy_beams[:]:
             if (enemy_beam[0] < player_x + player_width and
@@ -186,16 +196,18 @@ while running:
                     explosions.append([player_x, player_y, explosion_duration])
                     enemy_beams.remove(enemy_beam)
                 player_lives -= 1
+                player_hit = True
                 if player_lives == 0:
                     game_over = True
-                time.sleep(3)  # 3秒間スリープ
-        
+
         # 爆発の更新
-        for explosion in explosions[:]:
-            explosion[2] -= 1
-            if explosion[2] <= 0:
-                explosions.remove(explosion)
-        
+        draw_explosions()
+
+        if player_hit:
+            draw_explosions()  # 爆発を描画して更新
+            pygame.display.flip()
+            time.sleep(3)  # 3秒間スリープ
+
         # 画面の描画
         screen.fill(black)
         
@@ -213,10 +225,6 @@ while running:
         # 敵ビームの描画
         for enemy_beam in enemy_beams:
             pygame.draw.rect(screen, red, (enemy_beam[0], enemy_beam[1], beam_width, beam_height))
-        
-        # 爆発の描画
-        for explosion in explosions:
-            screen.blit(explosion_img, (explosion[0], explosion[1]))
         
         # スコアとライフの描画
         score_text = font.render(f'Score: {score}', True, white)
