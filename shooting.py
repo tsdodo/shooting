@@ -122,7 +122,7 @@ while running:
             beams.append([player_x + player_width, player_y + player_height // 2])
         
         # ビームの位置更新
-        for beam in beams:
+        for beam in beams[:]:
             beam[0] += beam_speed
             if beam[0] > screen_width:
                 beams.remove(beam)
@@ -132,7 +132,7 @@ while running:
             enemies.append([screen_width, random.randint(0, screen_height - enemy_height)])
         
         # 敵の位置更新
-        for enemy in enemies:
+        for enemy in enemies[:]:
             enemy[0] -= enemy_speed
             if random.randint(1, 50) == 1:
                 enemy_beams.append([enemy[0], enemy[1] + enemy_height // 2])
@@ -140,34 +140,37 @@ while running:
                 enemies.remove(enemy)
         
         # 敵ビームの位置更新
-        for enemy_beam in enemy_beams:
+        for enemy_beam in enemy_beams[:]:
             enemy_beam[0] -= enemy_beam_speed
             if enemy_beam[0] < 0:
                 enemy_beams.remove(enemy_beam)
         
         # 衝突判定
-        for enemy in enemies:
-            for beam in beams:
+        for enemy in enemies[:]:
+            for beam in beams[:]:
                 if (enemy[0] < beam[0] < enemy[0] + enemy_width and
                         enemy[1] < beam[1] < enemy[1] + enemy_height):
-                    enemies.remove(enemy)
-                    beams.remove(beam)
-                    score += 10
+                    if enemy in enemies and beam in beams:
+                        enemies.remove(enemy)
+                        beams.remove(beam)
+                        score += 10
             if (enemy[0] < player_x + player_width and
                     enemy[0] + enemy_width > player_x and
                     enemy[1] < player_y + player_height and
                     enemy[1] + enemy_height > player_y):
-                enemies.remove(enemy)
+                if enemy in enemies:
+                    enemies.remove(enemy)
                 player_lives -= 1
                 if player_lives == 0:
                     game_over = True
         
-        for enemy_beam in enemy_beams:
+        for enemy_beam in enemy_beams[:]:
             if (enemy_beam[0] < player_x + player_width and
                     enemy_beam[0] + beam_width > player_x and
                     enemy_beam[1] < player_y + player_height and
                     enemy_beam[1] + beam_height > player_y):
-                enemy_beams.remove(enemy_beam)
+                if enemy_beam in enemy_beams:
+                    enemy_beams.remove(enemy_beam)
                 player_lives -= 1
                 if player_lives == 0:
                     game_over = True
