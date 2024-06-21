@@ -36,6 +36,19 @@ beam_speed = 7
 # 爆発設定
 explosion_duration = 30  # 爆発が表示されるフレーム数
 
+# 効果音の読み込み
+player_explosion_sound = pygame.mixer.Sound('player_explosion.mp3')
+enemy_explosion_sound = pygame.mixer.Sound('enemy_explosion.mp3')
+beam_fire_sound = pygame.mixer.Sound('beam_fire.mp3')
+
+# BGMの読み込み
+background_music = 'background_music.mp3'
+game_over_music = 'game_over_music.mp3'
+
+# BGMの再生
+pygame.mixer.music.load(background_music)
+pygame.mixer.music.play(-1)  # ループ再生
+
 # プレイヤー画像の読み込み
 player_img = pygame.image.load('player.png')
 player_img = pygame.transform.scale(player_img, (player_width, player_height))
@@ -87,13 +100,15 @@ def show_game_over():
     pygame.display.flip()
 
 def reset_game():
-    global player_x, player_y, beams, enemy_beams, enemies, explosions
+    global player_x, player_y, beams, enemy_beams, enemies, explosions, player_lives, score
     player_x = 10
     player_y = screen_height // 2 - player_height // 2
     beams = []
     enemy_beams = []
     enemies = []
     explosions = []
+    pygame.mixer.music.load(background_music)
+    pygame.mixer.music.play(-1)  # ゲーム再開時に元のBGMを再生
 
 def draw_explosions():
     for explosion in explosions[:]:
@@ -147,6 +162,7 @@ while running:
             player_y += player_speed
         if keys[pygame.K_SPACE]:
             beams.append([player_x + player_width, player_y + player_height // 2])
+            beam_fire_sound.play()  # ビーム発射音を再生
         
         # ビームの位置更新
         for beam in beams[:]:
@@ -184,6 +200,7 @@ while running:
                         enemies.remove(enemy)
                         beams.remove(beam)
                         score += 10
+                        enemy_explosion_sound.play()  # 敵機の爆発音を再生
             if (enemy[0] < player_x + player_width and
                     enemy[0] + enemy_width > player_x and
                     enemy[1] < player_y + player_height and
@@ -193,8 +210,11 @@ while running:
                     enemies.remove(enemy)
                 player_lives -= 1
                 player_hit = True
+                player_explosion_sound.play()  # プレイヤー機の爆発音を再生
                 if player_lives == 0:
                     game_over = True
+                    pygame.mixer.music.load(game_over_music)
+                    pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
 
         for enemy_beam in enemy_beams[:]:
             if (enemy_beam[0] < player_x + player_width and
@@ -206,13 +226,16 @@ while running:
                     enemy_beams.remove(enemy_beam)
                 player_lives -= 1
                 player_hit = True
+                player_explosion_sound.play()  # プレイヤー機の爆発音を再生
                 if player_lives == 0:
                     game_over = True
+                    pygame.mixer.music.load(game_over_music)
+                    pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
 
         # 爆発の更新
         draw_explosions()
 
-        if player_hit:
+        if player_hit and not game_over:
             draw_explosions()  # 爆発を描画して更新
             pygame.display.flip()
             time.sleep(3)  # 3秒間スリープ
