@@ -204,13 +204,14 @@ def main():
             if keys[pygame.K_DOWN] and player_y < SCREEN_HEIGHT - PLAYER_HEIGHT:
                 player_y += PLAYER_SPEED
             if keys[pygame.K_SPACE]:
-                beams.append([player_x + PLAYER_WIDTH, player_y + PLAYER_HEIGHT // 2])
+                beams.append([player_x + PLAYER_WIDTH, player_y + PLAYER_HEIGHT // 2, BEAM_SPEED, 0, player_beam_img])
                 beam_fire_sound.play()  # ビーム発射音を再生
             
             # ビームの位置更新
             for beam in beams[:]:
-                beam[0] += BEAM_SPEED
-                if beam[0] > SCREEN_WIDTH:
+                beam[0] += beam[2]
+                beam[1] += beam[3]
+                if beam[0] > SCREEN_WIDTH or beam[0] < 0 or beam[1] > SCREEN_HEIGHT or beam[1] < 0:
                     beams.remove(beam)
             
             # 新しい敵を追加
@@ -224,12 +225,15 @@ def main():
                 if enemy.is_shooter and enemy.radial_shoot_cooldown <= 0:
                     for angle in range(0, 360, 45):  # 45度ごとにビームを放射
                         radians = math.radians(angle)
-                        enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, math.cos(radians) * ENEMY_BEAM_SPEED, math.sin(radians) * ENEMY_BEAM_SPEED])
+                        dx = math.cos(radians) * ENEMY_BEAM_SPEED
+                        dy = math.sin(radians) * ENEMY_BEAM_SPEED
+                        rotated_beam_img = pygame.transform.rotate(enemy_beam_img, -math.degrees(radians))
+                        enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, dx, dy, rotated_beam_img])
                     enemy.radial_shoot_cooldown = random.randint(200, 400)
                 else:
                     enemy.radial_shoot_cooldown -= 1
                 if enemy.shoot_cooldown <= 0:
-                    enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, -ENEMY_BEAM_SPEED, 0])
+                    enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, -ENEMY_BEAM_SPEED, 0, enemy_beam_img])
                     enemy.shoot_cooldown = random.randint(50, 100)
                 else:
                     enemy.shoot_cooldown -= 1
@@ -307,7 +311,7 @@ def main():
             
             # ビームの描画
             for beam in beams:
-                screen.blit(player_beam_img, (beam[0], beam[1]))  # プレイヤーのビームの描画
+                screen.blit(beam[4], (beam[0], beam[1]))  # プレイヤーのビームの描画
             
             # 敵の描画
             for enemy in enemies:
@@ -315,7 +319,7 @@ def main():
             
             # 敵ビームの描画
             for enemy_beam in enemy_beams:
-                screen.blit(enemy_beam_img, (enemy_beam[0], enemy_beam[1]))  # 敵のビームの描画
+                screen.blit(enemy_beam[4], (enemy_beam[0], enemy_beam[1]))  # 敵のビームの描画
             
             # スコアとライフの描画
             score_text = font.render(f'Score: {score}', True, WHITE)
