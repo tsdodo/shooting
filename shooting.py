@@ -1,69 +1,19 @@
+# main.py
+
 import pygame
 import random
 import time
-import math
-
-# 画面の設定
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-
-# 色の定義
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-
-# 定数の定義
-INITIAL_LIVES = 3  # プレイヤーの初期ライフ
-INITIAL_SCORE = 0  # 初期スコア
-SCORE_PER_HIT = 10  # 敵にビームが当たった時のスコア
-PLAYER_WIDTH = 50
-PLAYER_HEIGHT = 60
-PLAYER_SPEED = 5
-INITIAL_PLAYER_X = 10  # プレイヤーの初期X位置
-INITIAL_PLAYER_Y = SCREEN_HEIGHT // 2 - PLAYER_HEIGHT // 2  # プレイヤーの初期Y位置
-ENEMY_WIDTH = 50
-ENEMY_HEIGHT = 50
-ENEMY_SPEED = 3
-ENEMY_BEAM_SPEED = 5
-BEAM_WIDTH = 20  # 横長の楕円の幅
-BEAM_HEIGHT = 5  # 横長の楕円の高さ
-BEAM_SPEED = 7
-EXPLOSION_DURATION = 30  # 爆発が表示されるフレーム数
-PLAYER_HIT_SLEEP_TIME = 3  # プレイヤー機の爆発時のスリープ時間
-
-# ファイル名の定数
-BACKGROUND_MUSIC = 'background_music.mp3'
-GAME_OVER_MUSIC = 'game_over_music.mp3'
-PLAYER_EXPLOSION_SOUND = 'player_explosion.mp3'
-ENEMY_EXPLOSION_SOUND = 'enemy_explosion.mp3'
-BEAM_FIRE_SOUND = 'beam_fire.mp3'
-PLAYER_IMAGE = 'player.png'
-ENEMY_IMAGE = 'enemy.png'
-EXPLOSION_IMAGE = 'explosion.png'
-BACKGROUND_IMAGE = 'background.png'
-PLAYER_BEAM_IMAGE = "player_beam.png"
-ENEMY_BEAM_IMAGE = "enemy_beam.png"
-
-# ボタン選択肢の定数
-RETRY_BUTTON = 'retry'
-QUIT_BUTTON = 'quit'
-
-class Enemy:
-    def __init__(self, x, y, is_shooter=False):
-        self.x = x
-        self.y = y
-        self.is_shooter = is_shooter
-        self.shoot_cooldown = random.randint(50, 100)
-        self.radial_shoot_cooldown = random.randint(200, 400) if is_shooter else 0
+from player import Player
+from enemy import Enemy
+from player_beam import PlayerBeam
+from enemy_beam import EnemyBeam,RotateEnemyBeam
+from constants import *
+from utils import check_collision, debug_log
 
 def setup():
     """初期設定を行う関数"""
     global screen, font, button_font, retry_button_rect, quit_button_rect
-    global player_explosion_sound, enemy_explosion_sound, beam_fire_sound
-    global player_img, player_mask, enemy_img, enemy_mask, explosion_img, background_img
-    global player_beam_img, enemy_beam_img
+    global player_explosion_sound, enemy_explosion_sound, beam_fire_sound, background_img, explosion_img
 
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -72,27 +22,13 @@ def setup():
     enemy_explosion_sound = pygame.mixer.Sound(ENEMY_EXPLOSION_SOUND)
     beam_fire_sound = pygame.mixer.Sound(BEAM_FIRE_SOUND)
 
-    # プレイヤー画像の読み込み
-    player_img = pygame.image.load(PLAYER_IMAGE)
-    player_img = pygame.transform.scale(player_img, (PLAYER_WIDTH, PLAYER_HEIGHT))
-    player_mask = pygame.mask.from_surface(player_img)
-
-    # 敵画像の読み込み
-    enemy_img = pygame.image.load(ENEMY_IMAGE)
-    enemy_img = pygame.transform.scale(enemy_img, (ENEMY_WIDTH, ENEMY_HEIGHT))
-    enemy_mask = pygame.mask.from_surface(enemy_img)
-
-    # 爆発画像の読み込み
-    explosion_img = pygame.image.load(EXPLOSION_IMAGE)
-    explosion_img = pygame.transform.scale(explosion_img, (PLAYER_WIDTH, PLAYER_HEIGHT))
-
     # 背景画像の読み込み
     background_img = pygame.image.load(BACKGROUND_IMAGE).convert()
     background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    # ビーム画像の読み込み
-    player_beam_img = pygame.image.load(PLAYER_BEAM_IMAGE).convert_alpha()
-    enemy_beam_img = pygame.image.load(ENEMY_BEAM_IMAGE).convert_alpha()
+    # 爆発画像の読み込み
+    explosion_img = pygame.image.load(EXPLOSION_IMAGE).convert_alpha()
+    explosion_img = pygame.transform.scale(explosion_img, (PLAYER_WIDTH, PLAYER_HEIGHT))
 
     # フォント設定
     font = pygame.font.Font(None, 36)  # スコアやライフ表示用のフォント
@@ -102,7 +38,9 @@ def setup():
     retry_button_rect = pygame.Rect(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2, 100, 50)  # リトライボタンの位置とサイズ
     quit_button_rect = pygame.Rect(SCREEN_WIDTH // 2 + 10, SCREEN_HEIGHT // 2, 100, 50)  # 終了ボタンの位置とサイズ
 
-def show_game_over():
+    debug_log("Setup complete")
+
+def show_game_over(selected_button):
     """ゲームオーバー画面を表示する関数"""
     screen.fill(BLACK)
     game_over_text = button_font.render("GAME OVER", True, WHITE)
@@ -120,40 +58,46 @@ def show_game_over():
 
     pygame.display.flip()
 
-def reset_game(init=False):
+def reset_game(player, init=False):
     """ゲームの状態をリセットする関数"""
-    global player_x, player_y, beams, enemy_beams, enemies, explosions, player_lives, score
-    player_x = INITIAL_PLAYER_X
-    player_y = INITIAL_PLAYER_Y
+    global beams, enemy_beams, enemies, explosions
     beams = []
     enemy_beams = []
     enemies = []
     explosions = []
-    if init:
-        player_lives = INITIAL_LIVES  # リセット時にライフを元に戻す
-        score = INITIAL_SCORE  # リセット時にスコアを元に戻す
+    player.reset(init) 
     pygame.mixer.music.load(BACKGROUND_MUSIC)
     pygame.mixer.music.play(-1)  # ゲーム再開時に元のBGMを再生
+    debug_log("Game reset")
 
 def draw_explosions():
     """爆発エフェクトを描画する関数"""
+    global explosions
     for explosion in explosions[:]:
         screen.blit(explosion_img, (explosion[0], explosion[1]))
         explosion[2] -= 1
         if explosion[2] <= 0:
             explosions.remove(explosion)
-    pygame.display.flip()
 
-def check_collision(mask1, x1, y1, mask2, x2, y2):
-    """マスクを使用して衝突判定を行う関数"""
-    offset_x = x2 - x1
-    offset_y = y2 - y1
-    return mask1.overlap(mask2, (offset_x, offset_y)) is not None
+def be_bombed(player):
+    global explosions,player_explosion_sound
+    explosions.append([player.x, player.y, EXPLOSION_DURATION])
+    player.lives -= 1
+    player.hit = True
+    player_explosion_sound.play()  # プレイヤー機の爆発音を再生
+    if player.lives == 0:
+        game_over = True
+        pygame.mixer.music.load(GAME_OVER_MUSIC)
+        pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
+        debug_log("Game over")
+    else:
+        game_over = False
+    return game_over
 
 def main():
     """ゲームのメインループ"""
-    global selected_button, running, game_over
-    global player_x, player_y, beams, enemy_beams, enemies, explosions, player_lives, score
+    global selected_button, running, game_over, screen, font, button_font, retry_button_rect, quit_button_rect
+    global player_explosion_sound, enemy_explosion_sound, beam_fire_sound, background_img, explosions
 
     # Pygameの初期化
     pygame.init()
@@ -162,7 +106,9 @@ def main():
     setup()
 
     # ゲームの初期化
-    reset_game(init=True)
+    player = Player(INITIAL_PLAYER_X, INITIAL_PLAYER_Y)
+    reset_game(player, init=True)
+    debug_log("Game initialized")
 
     # ゲームループの初期化
     running = True
@@ -176,163 +122,166 @@ def main():
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN and game_over:
                 mouse_pos = event.pos
+                debug_log(f"Mouse click at {mouse_pos}")
                 if retry_button_rect.collidepoint(mouse_pos):
-                    reset_game(init=True)
+                    reset_game(player, init=True)
                     game_over = False
+                    debug_log("Retry button clicked")
                 elif quit_button_rect.collidepoint(mouse_pos):
                     running = False
+                    debug_log("Quit button clicked")
             if game_over:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
                         selected_button = RETRY_BUTTON if selected_button == QUIT_BUTTON else QUIT_BUTTON
+                        debug_log(f"Selected button: {selected_button}")
                     if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                         if selected_button == RETRY_BUTTON:
-                            reset_game(init=True)
+                            reset_game(player, init=True)
                             game_over = False
+                            debug_log("Retry button selected with keyboard")
                         elif selected_button == QUIT_BUTTON:
                             running = False
+                            debug_log("Quit button selected with keyboard")
         
         if not game_over:
             # プレイヤーの移動
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT] and player_x > 0:
-                player_x -= PLAYER_SPEED
-            if keys[pygame.K_RIGHT] and player_x < SCREEN_WIDTH - PLAYER_WIDTH:
-                player_x += PLAYER_SPEED
-            if keys[pygame.K_UP] and player_y > 0:
-                player_y -= PLAYER_SPEED
-            if keys[pygame.K_DOWN] and player_y < SCREEN_HEIGHT - PLAYER_HEIGHT:
-                player_y += PLAYER_SPEED
+            if keys[pygame.K_LEFT] and player.x > 0:
+                player.move_left()
+            if keys[pygame.K_RIGHT] and player.x < SCREEN_WIDTH - PLAYER_WIDTH:
+                player.move_right()
+            if keys[pygame.K_UP] and player.y > 0:
+                player.move_up()
+            if keys[pygame.K_DOWN] and player.y < SCREEN_HEIGHT - PLAYER_HEIGHT:
+                player.move_down()
             if keys[pygame.K_SPACE]:
-                beams.append([player_x + PLAYER_WIDTH, player_y + PLAYER_HEIGHT // 2, BEAM_SPEED, 0, player_beam_img])
+                beams.append(PlayerBeam(player.x + PLAYER_WIDTH, player.y + PLAYER_HEIGHT // 2))
                 beam_fire_sound.play()  # ビーム発射音を再生
+                debug_log("Player fired a beam")
             
             # ビームの位置更新
             for beam in beams[:]:
-                beam[0] += beam[2]
-                beam[1] += beam[3]
-                if beam[0] > SCREEN_WIDTH or beam[0] < 0 or beam[1] > SCREEN_HEIGHT or beam[1] < 0:
+                beam.move()
+                if beam.x > SCREEN_WIDTH or beam.x < 0 or beam.y > SCREEN_HEIGHT or beam.y < 0:
                     beams.remove(beam)
-            
+                    debug_log("Player beam removed")
+
             # 新しい敵を追加
             if random.randint(1, 20) == 1:
+                # 敵の生成位置を調整してプレイヤーから離す
+                enemy_x = SCREEN_WIDTH
+                enemy_y = random.randint(0, SCREEN_HEIGHT - ENEMY_HEIGHT)
+                while abs(enemy_y - player.y) < ENEMY_HEIGHT * 2:
+                    enemy_y = random.randint(0, SCREEN_HEIGHT - ENEMY_HEIGHT)
                 is_shooter = random.randint(1, 5) == 1  # ランダムに放射状ビームを撃つ敵を追加
-                enemies.append(Enemy(SCREEN_WIDTH, random.randint(0, SCREEN_HEIGHT - ENEMY_HEIGHT), is_shooter))
+                enemies.append(Enemy(enemy_x, enemy_y, is_shooter))
+                debug_log(f"New enemy added at ({enemy_x}, {enemy_y})")
             
             # 敵の位置更新
             for enemy in enemies[:]:
-                enemy.x -= ENEMY_SPEED
+                enemy.move()
+                enemy.update_cooldowns()
                 if enemy.is_shooter and enemy.radial_shoot_cooldown <= 0:
                     for angle in range(0, 360, 45):  # 45度ごとにビームを放射
-                        radians = math.radians(angle)
-                        dx = math.cos(radians) * ENEMY_BEAM_SPEED
-                        dy = math.sin(radians) * ENEMY_BEAM_SPEED
-                        rotated_beam_img = pygame.transform.rotate(enemy_beam_img, -math.degrees(radians))
-                        enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, dx, dy, rotated_beam_img])
+                        enemy_beams.append(RotateEnemyBeam(enemy.x, enemy.y + ENEMY_HEIGHT // 2, angle))
                     enemy.radial_shoot_cooldown = random.randint(200, 400)
-                else:
-                    enemy.radial_shoot_cooldown -= 1
+                    debug_log("Enemy fired radial beams")
                 if enemy.shoot_cooldown <= 0:
-                    enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, -ENEMY_BEAM_SPEED, 0, enemy_beam_img])
+                    enemy_beams.append(EnemyBeam(enemy.x, enemy.y + ENEMY_HEIGHT // 2))
                     enemy.shoot_cooldown = random.randint(50, 100)
-                else:
-                    enemy.shoot_cooldown -= 1
+                    debug_log("Enemy fired a beam")
                 if enemy.x < 0:
                     enemies.remove(enemy)
-            
+                    debug_log("Enemy removed")
+
             # 敵ビームの位置更新
             for enemy_beam in enemy_beams[:]:
-                enemy_beam[0] += enemy_beam[2]
-                enemy_beam[1] += enemy_beam[3]
-                if enemy_beam[0] < 0 or enemy_beam[0] > SCREEN_WIDTH or enemy_beam[1] < 0 or enemy_beam[1] > SCREEN_HEIGHT:
+                enemy_beam.move()
+                if enemy_beam.x < 0 or enemy_beam.x > SCREEN_WIDTH or enemy_beam.y < 0 or enemy_beam.y > SCREEN_HEIGHT:
                     enemy_beams.remove(enemy_beam)
-            
+                    debug_log("Enemy beam removed")
+
             # 衝突判定
-            player_hit = False
             enemies_to_remove = []
             beams_to_remove = []
             enemy_beams_to_remove = []
 
             for enemy in enemies:
                 for beam in beams:
-                    if check_collision(enemy_mask, enemy.x, enemy.y, pygame.mask.Mask((BEAM_WIDTH, BEAM_HEIGHT), True), beam[0], beam[1]):
+                    if check_collision(enemy.mask, enemy.x, enemy.y, beam.mask, beam.x, beam.y):
                         explosions.append([enemy.x, enemy.y, EXPLOSION_DURATION])
                         enemies_to_remove.append(enemy)
                         beams_to_remove.append(beam)
-                        score += SCORE_PER_HIT
+                        player.score += SCORE_PER_HIT
                         enemy_explosion_sound.play()  # 敵機の爆発音を再生
+                        debug_log("Enemy hit by player beam")
 
-                if check_collision(player_mask, player_x, player_y, enemy_mask, enemy.x, enemy.y):
-                    explosions.append([enemy.x, enemy.y, EXPLOSION_DURATION])
+                if check_collision(player.mask, player.x, player.y, enemy.mask, enemy.x, enemy.y):
+                    game_over = be_bombed(player)
                     enemies_to_remove.append(enemy)
-                    player_lives -= 1
-                    player_hit = True
-                    player_explosion_sound.play()  # プレイヤー機の爆発音を再生
-                    if player_lives == 0:
-                        game_over = True
-                        pygame.mixer.music.load(GAME_OVER_MUSIC)
-                        pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
+                    debug_log(f"Player hit by enemy. Player position: ({player.x}, {player.y}), Enemy position: ({enemy.x}, {enemy.y}), Lives left: {player.lives}")
 
             for enemy_beam in enemy_beams:
-                if check_collision(player_mask, player_x, player_y, pygame.mask.Mask((BEAM_WIDTH, BEAM_HEIGHT), True), enemy_beam[0], enemy_beam[1]):
-                    explosions.append([player_x, player_y, EXPLOSION_DURATION])
+                if check_collision(player.mask, player.x, player.y, enemy_beam.mask, enemy_beam.x, enemy_beam.y):
+                    game_over = be_bombed(player)
                     enemy_beams_to_remove.append(enemy_beam)
-                    player_lives -= 1
-                    player_hit = True
-                    player_explosion_sound.play()  # プレイヤー機の爆発音を再生
-                    if player_lives == 0:
-                        game_over = True
-                        pygame.mixer.music.load(GAME_OVER_MUSIC)
-                        pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
+                    debug_log(f"Player hit by enemy beam. Player position: ({player.x}, {player.y}), Enemy beam position: ({enemy_beam.x}, {enemy_beam.y}), Lives left: {player.lives}")
 
             # リスト外で削除
             for enemy in enemies_to_remove:
                 if enemy in enemies:
                     enemies.remove(enemy)
+                    debug_log("Enemy removed from list")
             for beam in beams_to_remove:
                 if beam in beams:
                     beams.remove(beam)
+                    debug_log("Player beam removed from list")
             for enemy_beam in enemy_beams_to_remove:
                 if enemy_beam in enemy_beams:
                     enemy_beams.remove(enemy_beam)
-
-            # 爆発の更新
-            draw_explosions()
-
-            if player_hit and not game_over:
-                draw_explosions()  # 爆発を描画して更新
-                pygame.display.flip()
-                time.sleep(PLAYER_HIT_SLEEP_TIME)  # 3秒間スリープ
-                reset_game(init=False)
+                    debug_log("Enemy beam removed from list")
 
             # 画面の描画
             screen.blit(background_img, (0, 0))  # 背景画像を描画
-            screen.blit(player_img, (player_x, player_y))  # プレイヤーの描画
+            player.draw(screen)  # プレイヤーの描画
             
             # ビームの描画
             for beam in beams:
-                screen.blit(beam[4], (beam[0], beam[1]))  # プレイヤーのビームの描画
+                beam.draw(screen)  # プレイヤーのビームの描画
             
             # 敵の描画
             for enemy in enemies:
-                screen.blit(enemy_img, (enemy.x, enemy.y))
+                enemy.draw(screen)
             
             # 敵ビームの描画
             for enemy_beam in enemy_beams:
-                screen.blit(enemy_beam[4], (enemy_beam[0], enemy_beam[1]))  # 敵のビームの描画
+                enemy_beam.draw(screen)  # 敵のビームの描画
+            
+            # 爆発の更新
+            draw_explosions()
             
             # スコアとライフの描画
-            score_text = font.render(f'Score: {score}', True, WHITE)
-            lives_text = font.render(f'Lives: {player_lives}', True, WHITE)
+            score_text = font.render(f'Score: {player.score}', True, WHITE)
+            lives_text = font.render(f'Lives: {player.lives}', True, WHITE)
             screen.blit(score_text, (SCREEN_WIDTH - score_text.get_width() - 10, 10))  # スコアを右上に表示
             screen.blit(lives_text, (10, 10))  # ライフを左上に表示
             
             pygame.display.flip()
             clock.tick(60)
+            
+            if player.hit and not game_over:
+                draw_explosions()  # 爆発を描画して更新
+                pygame.display.flip()
+                debug_log("Player hit, sleeping for recovery")
+                time.sleep(PLAYER_HIT_SLEEP_TIME)  # 3秒間スリープ
+                reset_game(player, init=False)
+
         else:
-            show_game_over()
+            show_game_over(selected_button)
 
     pygame.quit()
+    debug_log("Game quit")
 
 if __name__ == "__main__":
     main()
