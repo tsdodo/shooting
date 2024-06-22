@@ -66,12 +66,6 @@ enemy_mask = pygame.mask.from_surface(enemy_img)
 explosion_img = pygame.image.load('explosion.png')
 explosion_img = pygame.transform.scale(explosion_img, (PLAYER_WIDTH, PLAYER_HEIGHT))
 
-# ビームと敵のリスト
-beams = []  # プレイヤーのビームを格納するリスト
-enemy_beams = []  # 敵のビームを格納するリスト
-enemies = []  # 敵を格納するリスト
-explosions = []  # 爆発を格納するリスト
-
 # フォント設定
 font = pygame.font.Font(None, 36)  # スコアやライフ表示用のフォント
 
