@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+import math
 
 # 画面の設定
 SCREEN_WIDTH = 800
@@ -48,6 +49,14 @@ ENEMY_BEAM_IMAGE = "enemy_beam.png"
 # ボタン選択肢の定数
 RETRY_BUTTON = 'retry'
 QUIT_BUTTON = 'quit'
+
+class Enemy:
+    def __init__(self, x, y, is_shooter=False):
+        self.x = x
+        self.y = y
+        self.is_shooter = is_shooter
+        self.shoot_cooldown = random.randint(50, 100)
+        self.radial_shoot_cooldown = random.randint(200, 400) if is_shooter else 0
 
 def setup():
     """初期設定を行う関数"""
@@ -206,20 +215,32 @@ def main():
             
             # 新しい敵を追加
             if random.randint(1, 20) == 1:
-                enemies.append([SCREEN_WIDTH, random.randint(0, SCREEN_HEIGHT - ENEMY_HEIGHT)])
+                is_shooter = random.randint(1, 5) == 1  # ランダムに放射状ビームを撃つ敵を追加
+                enemies.append(Enemy(SCREEN_WIDTH, random.randint(0, SCREEN_HEIGHT - ENEMY_HEIGHT), is_shooter))
             
             # 敵の位置更新
             for enemy in enemies[:]:
-                enemy[0] -= ENEMY_SPEED
-                if random.randint(1, 50) == 1:
-                    enemy_beams.append([enemy[0], enemy[1] + ENEMY_HEIGHT // 2])
-                if enemy[0] < 0:
+                enemy.x -= ENEMY_SPEED
+                if enemy.is_shooter and enemy.radial_shoot_cooldown <= 0:
+                    for angle in range(0, 360, 45):  # 45度ごとにビームを放射
+                        radians = math.radians(angle)
+                        enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, math.cos(radians) * ENEMY_BEAM_SPEED, math.sin(radians) * ENEMY_BEAM_SPEED])
+                    enemy.radial_shoot_cooldown = random.randint(200, 400)
+                else:
+                    enemy.radial_shoot_cooldown -= 1
+                if enemy.shoot_cooldown <= 0:
+                    enemy_beams.append([enemy.x, enemy.y + ENEMY_HEIGHT // 2, -ENEMY_BEAM_SPEED, 0])
+                    enemy.shoot_cooldown = random.randint(50, 100)
+                else:
+                    enemy.shoot_cooldown -= 1
+                if enemy.x < 0:
                     enemies.remove(enemy)
             
             # 敵ビームの位置更新
             for enemy_beam in enemy_beams[:]:
-                enemy_beam[0] -= ENEMY_BEAM_SPEED
-                if enemy_beam[0] < 0:
+                enemy_beam[0] += enemy_beam[2]
+                enemy_beam[1] += enemy_beam[3]
+                if enemy_beam[0] < 0 or enemy_beam[0] > SCREEN_WIDTH or enemy_beam[1] < 0 or enemy_beam[1] > SCREEN_HEIGHT:
                     enemy_beams.remove(enemy_beam)
             
             # 衝突判定
@@ -230,15 +251,15 @@ def main():
 
             for enemy in enemies:
                 for beam in beams:
-                    if check_collision(enemy_mask, enemy[0], enemy[1], pygame.mask.Mask((BEAM_WIDTH, BEAM_HEIGHT), True), beam[0], beam[1]):
-                        explosions.append([enemy[0], enemy[1], EXPLOSION_DURATION])
+                    if check_collision(enemy_mask, enemy.x, enemy.y, pygame.mask.Mask((BEAM_WIDTH, BEAM_HEIGHT), True), beam[0], beam[1]):
+                        explosions.append([enemy.x, enemy.y, EXPLOSION_DURATION])
                         enemies_to_remove.append(enemy)
                         beams_to_remove.append(beam)
                         score += SCORE_PER_HIT
                         enemy_explosion_sound.play()  # 敵機の爆発音を再生
 
-                if check_collision(player_mask, player_x, player_y, enemy_mask, enemy[0], enemy[1]):
-                    explosions.append([enemy[0], enemy[1], EXPLOSION_DURATION])
+                if check_collision(player_mask, player_x, player_y, enemy_mask, enemy.x, enemy.y):
+                    explosions.append([enemy.x, enemy.y, EXPLOSION_DURATION])
                     enemies_to_remove.append(enemy)
                     player_lives -= 1
                     player_hit = True
@@ -290,7 +311,7 @@ def main():
             
             # 敵の描画
             for enemy in enemies:
-                screen.blit(enemy_img, (enemy[0], enemy[1]))
+                screen.blit(enemy_img, (enemy.x, enemy.y))
             
             # 敵ビームの描画
             for enemy_beam in enemy_beams:
