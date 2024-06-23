@@ -47,7 +47,7 @@ def show_game_over(selected_button):
 
     pygame.display.flip()
 
-def reset_game(player, init=False):
+def reset_game(player , init=False):
     """ゲームの状態をリセットする関数"""
     global player_beams, enemy_beams, enemies, explosions
     player_beams = []
@@ -72,12 +72,10 @@ def draw(obj_array):
 
 def bombed(player):
     explosions.append(player.explosion())
-    if player.dead():
-        game_over = True
+    game_over = player.dead()
+    if game_over:
         pygame.mixer.music.load(GAME_OVER_MUSIC)
         pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
-    else:
-        game_over = False
     return game_over
 
 def main():
@@ -103,14 +101,14 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN and game_over:
-                mouse_pos = event.pos
-                if retry_button_rect.collidepoint(mouse_pos):
-                    reset_game(player, init=True)
-                    game_over = False
-                elif quit_button_rect.collidepoint(mouse_pos):
-                    running = False
             if game_over:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = event.pos
+                    if retry_button_rect.collidepoint(mouse_pos):
+                        reset_game(player, init=True)
+                        game_over = False
+                    elif quit_button_rect.collidepoint(mouse_pos):
+                        running = False
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
                         selected_button = RETRY_BUTTON if selected_button == QUIT_BUTTON else QUIT_BUTTON
