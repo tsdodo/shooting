@@ -27,6 +27,7 @@ INITIAL_SCORE = 0
 ENEMY_WIDTH = 50
 ENEMY_HEIGHT = 50
 ENEMY_SPEED = -3
+ENEMY_PROB_PER_FRAME = 20 #フレーム毎の敵の出現確率
 
 # ビームの設定
 PLAYER_BEAM_WIDTH = 20  # 横長の楕円の幅
@@ -35,12 +36,13 @@ PLAYER_BEAM_SPEED = 7
 ENEMY_BEAM_WIDTH = 20  # 横長の楕円の幅
 ENEMY_BEAM_HEIGHT = 5  # 横長の楕円の高さ
 ENEMY_BEAM_SPEED = -5 
+ENEMY_BEAM_ANGLE_UNIT = 45
 
 # スコア設定
 SCORE_PER_HIT = 10  # 敵にビームが当たった時のスコア
 
 # ゲーム設定
-EXPLOSION_DURATION = 30  # 爆発が表示されるフレーム数
+EXPLOSION_DURATION = 30  # 爆発が表示されるフレーム数期間
 PLAYER_HIT_SLEEP_TIME = 3  # プレイヤー機の爆発時のスリープ時間
 
 # ファイル名の定義

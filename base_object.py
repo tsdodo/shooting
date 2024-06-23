@@ -2,27 +2,27 @@
 
 import pygame
 import math
+from constants import  SCREEN_WIDTH,SCREEN_HEIGHT
 
 class BaseObject:
-    def __init__(self, x, y, image_path, width=None, height=None, speed_x=0, speed_y=0, rotate=False, angle=0):
+    def __init__(self, x, y, image, width=None, height=None, \
+                 speed_x=0, speed_y=0, sound_path=None, lives=None):
         self.x = x
         self.y = y
 
-        image = pygame.image.load(image_path).convert_alpha()
-        if width and height:
-            image = pygame.transform.scale(image, (width, height))
-
-        if rotate:
-            radians = math.radians(angle)
-            image = pygame.transform.rotate(image, -math.degrees(radians))
-            self.speed_x = math.cos(radians) * speed_x - math.sin(radians) * speed_y
-            self.speed_y = math.sin(radians) * speed_x + math.cos(radians) * speed_y
-        else:
-            self.speed_x = speed_x
-            self.speed_y = speed_y
-
+        if isinstance(image, str):       
+            image = pygame.image.load(image).convert_alpha()
+            if width and height:
+                image = pygame.transform.scale(image, (width, height))
+            
         self.image = image       
+        self.speed_x = speed_x
+        self.speed_y = speed_y
         self.mask = pygame.mask.from_surface(image)
+        self.lives = lives
+
+        if sound_path is not None:
+            pygame.mixer.Sound(sound_path).play()
 
     def move(self):
         self.x += self.speed_x
@@ -30,3 +30,14 @@ class BaseObject:
 
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
+
+    def off_screen(self):
+        return self.x < 0 or self.x > SCREEN_WIDTH  \
+                or self.y < 0 or self.y > SCREEN_HEIGHT
+    
+    def reduce_life(self, reduce_count=1):
+        if self.lives is not None:
+            self.lives -= reduce_count
+
+    def dead(self):
+        return self.lives == 0
