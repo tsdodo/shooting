@@ -4,6 +4,7 @@ from base_object import BaseObject
 from beam import EnemyBeam, RotateEnemyBeam
 from explosion import EnemyExplosion
 from constants import (
+    SHOOTER_ENEMY_IMAGE,
     ENEMY_IMAGE,
     ENEMY_WIDTH,
     ENEMY_HEIGHT,
@@ -25,9 +26,10 @@ class Enemy(BaseObject):
         # ランダムに放射状ビームを撃つ敵を追加
         self.is_shooter = (
             random.randint(1, SHOOTER_PROB_PER_ENEMY_RECIP) == 1
-        )  
+        )
+        image = SHOOTER_ENEMY_IMAGE if self.is_shooter else ENEMY_IMAGE
         super().__init__(
-            self.x, self.y, ENEMY_IMAGE, ENEMY_WIDTH, ENEMY_HEIGHT, ENEMY_SPEED
+            self.x, self.y, image, ENEMY_WIDTH, ENEMY_HEIGHT, ENEMY_SPEED
         )
 
         debug_log(f"New enemy added at ({self.x}, {self.y})")

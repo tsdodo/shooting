@@ -54,5 +54,5 @@ class BaseObject():
         if self.lives is not None:
             self.lives -= reduce_count
 
-    def dead(self) -> bool:
+    def is_dead(self) -> bool:
         return self.lives == 0

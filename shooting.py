@@ -12,6 +12,7 @@ from constants import (
     BLACK,
     ENEMY_PROB_PER_FRAME_RECIP,
     GAME_OVER_MUSIC,
+    PLAEYR_SHOOTER_TIME,
     PLAYER_HIT_SLEEP_TIME,
     QUIT_BUTTON,
     RETRY_BUTTON,
@@ -19,6 +20,7 @@ from constants import (
     SCREEN_HEIGHT,
     BACKGROUND_IMAGE,
     GREEN,
+    SHOOTING_TIME_MUSIC,
     WHITE,
 )
 from utils import check_collision
@@ -109,7 +111,7 @@ def draw_explosions(explosions: list[EnemyExplosion|PlayerExplosion]) -> None:
     for explosion in explosions:
         explosion.draw(screen)
         explosion.reduce_life()
-        if explosion.dead():
+        if explosion.is_dead():
             explosions.remove(explosion)
 
 
@@ -120,7 +122,7 @@ def draw(obj_array: Sequence[BaseObject]) -> None:
 
 def bombed(player: Player) -> bool:
     explosions.append(player.explosion())
-    game_over = player.dead()
+    game_over = player.is_dead()
     if game_over:
         pygame.mixer.music.load(GAME_OVER_MUSIC)
         pygame.mixer.music.play(-1)  # ゲームオーバー時に別のBGMを再生
@@ -143,6 +145,7 @@ def main() -> None:
     # ゲームループの初期化
     running = True
     game_over = False
+    shooting_time = False
     selected_button = RETRY_BUTTON  # 初期選択ボタン
     clock = pygame.time.Clock()
 
@@ -249,6 +252,15 @@ def main() -> None:
 
             #放射ビーム発射ゲージアップ
             player.shooting_gage_up()
+            #BGM切り替え
+            if (not shooting_time) and (player.shooting_gage >= PLAEYR_SHOOTER_TIME[0]):
+                pygame.mixer.music.load(SHOOTING_TIME_MUSIC)
+                pygame.mixer.music.play(-1)
+                shooting_time = True
+            elif shooting_time and (player.shooting_gage < PLAEYR_SHOOTER_TIME[0]):
+                pygame.mixer.music.load(BACKGROUND_MUSIC)
+                pygame.mixer.music.play(-1) 
+                shooting_time = False
 
             pygame.display.flip()
             clock.tick(60)
@@ -257,7 +269,6 @@ def main() -> None:
                 time.sleep(PLAYER_HIT_SLEEP_TIME)  # 3秒間スリープ
                 if not game_over:
                     reset_game(player, init=False)
-
 
         else:
             show_game_over(selected_button)

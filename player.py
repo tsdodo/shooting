@@ -4,6 +4,7 @@ from base_object import BaseObject
 from beam import PlayerBeam, RotatePlayerBeam
 from explosion import PlayerExplosion
 from constants import (
+    PLAEYR_SHOOTER_TIME,
     PLAYER_BEAM_ANGLE_UNIT,
     PLAYER_IMAGE,
     PLAYER_WIDTH,
@@ -49,10 +50,10 @@ class Player(BaseObject):
 
     def shooting(self) -> Optional[list[PlayerBeam | RotatePlayerBeam]]:
         beams: list[PlayerBeam | RotatePlayerBeam] = []
-        if self.shooting_gage >= 500:
+        if self.shooting_gage >= PLAEYR_SHOOTER_TIME[0]:
             for angle in range(0, 360, PLAYER_BEAM_ANGLE_UNIT):
                 beams.append(RotatePlayerBeam(self.x, self.y + PLAYER_HEIGHT // 2, angle))
-            if self.shooting_gage >= 600:
+            if self.shooting_gage >= PLAEYR_SHOOTER_TIME[1]:
                 self.reset_shooting_gage()  
         else:
             beams.append(PlayerBeam(self.x + PLAYER_WIDTH, self.y + PLAYER_HEIGHT // 2))
