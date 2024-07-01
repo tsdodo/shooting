@@ -1,19 +1,12 @@
 import random
 from typing import Optional
+
 from base_object import BaseObject
 from beam import EnemyBeam, RotateEnemyBeam
+from constants import (ENEMY_BEAM_ANGLE_UNIT, ENEMY_HEIGHT, ENEMY_IMAGE,
+                       ENEMY_SPEED, ENEMY_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH,
+                       SHOOTER_ENEMY_IMAGE, SHOOTER_PROB_PER_ENEMY_RECIP)
 from explosion import EnemyExplosion
-from constants import (
-    SHOOTER_ENEMY_IMAGE,
-    ENEMY_IMAGE,
-    ENEMY_WIDTH,
-    ENEMY_HEIGHT,
-    ENEMY_SPEED,
-    ENEMY_BEAM_ANGLE_UNIT,
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    SHOOTER_PROB_PER_ENEMY_RECIP
-)
 from utils import debug_log
 
 

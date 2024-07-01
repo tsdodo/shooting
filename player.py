@@ -15,8 +15,7 @@ from constants import (
     INITIAL_PLAYER_X,
     INITIAL_PLAYER_Y,
     SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    SCORE_PER_HIT,
+    SCREEN_HEIGHT
 )
 
 
@@ -73,8 +72,8 @@ class Player(BaseObject):
             self.score = INITIAL_SCORE
         self.shooting_gage = 0
 
-    def score_up(self) -> None:
-        self.score += SCORE_PER_HIT
+    def score_up(self, score: int) -> None:
+        self.score += score
 
     def shooting_gage_up(self) -> None:
         self.shooting_gage +=1

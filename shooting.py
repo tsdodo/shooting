@@ -1,49 +1,44 @@
-from typing import Sequence
-import pygame
 import random
 import time
+from typing import Sequence
+
+import pygame
+
 from base_object import BaseObject
 from beam import EnemyBeam, PlayerBeam, RotateEnemyBeam, RotatePlayerBeam
+from constants import (BACKGROUND_IMAGE, BACKGROUND_MUSIC, BLACK,
+                       ENEMY_PROB_PER_FRAME_RECIP, FEVER_BLINK_TIMEER_EVENT,
+                       FEVER_TEXT_BLINK_TIME, FONT, GAME_OVER_MUSIC, GREEN,
+                       PLAEYR_SHOOTER_TIME, PLAYER_HIT_SLEEP_TIME, QUIT_BUTTON,
+                       RED, RETRY_BUTTON, SCORE_PER_HIT, SCREEN_HEIGHT,
+                       SCREEN_WIDTH, SHOOTING_TIME_MUSIC, TIME_PER_FRAME,
+                       WHITE)
+from enemy import Enemy
 from explosion import EnemyExplosion, PlayerExplosion
 from player import Player
-from enemy import Enemy
-from constants import (
-    BACKGROUND_MUSIC,
-    BLACK,
-    ENEMY_PROB_PER_FRAME_RECIP,
-    GAME_OVER_MUSIC,
-    PLAEYR_SHOOTER_TIME,
-    PLAYER_HIT_SLEEP_TIME,
-    QUIT_BUTTON,
-    RETRY_BUTTON,
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    BACKGROUND_IMAGE,
-    GREEN,
-    SHOOTING_TIME_MUSIC,
-    WHITE,
-)
 from utils import check_collision
 
-#グローバル宣言
+# グローバル宣言
 screen: pygame.Surface
 background_img: pygame.Surface
-font: pygame.font.Font
+base_font: pygame.font.Font
 button_font: pygame.font.Font
+fever_font: pygame.font.Font
 retry_button_rect: pygame.Rect
 quit_button_rect: pygame.Rect
-player_beams: list[PlayerBeam|RotatePlayerBeam]
-enemy_beams: list[EnemyBeam|RotateEnemyBeam]
+player_beams: list[PlayerBeam | RotatePlayerBeam]
+enemy_beams: list[EnemyBeam | RotateEnemyBeam]
 enemies: list[Enemy]
-explosions: list[PlayerExplosion|EnemyExplosion]
+explosions: list[PlayerExplosion | EnemyExplosion]
 
 
 def setup() -> None:
     """初期設定を行う関数"""
     global \
         screen, \
-        font, \
+        base_font, \
         button_font, \
+        fever_font, \
         retry_button_rect, \
         quit_button_rect, \
         background_img
@@ -57,8 +52,9 @@ def setup() -> None:
     )
 
     # フォント設定
-    font = pygame.font.Font(None, 36)  # スコアやライフ表示用のフォント
-    button_font = pygame.font.Font(None, 48)  # ボタン用のフォント
+    base_font = pygame.font.Font(FONT, 36)  # スコアやライフ表示用のフォント
+    button_font = pygame.font.Font(FONT, 30)  # ボタン用のフォント
+    fever_font = pygame.font.Font(FONT, 72)
 
     # ボタンの設定
     # リトライボタンの位置とサイズ
@@ -82,14 +78,14 @@ def show_game_over(selected_button: str) -> None:
         screen, GREEN if selected_button == RETRY_BUTTON else WHITE, retry_button_rect
     )
     retry_text = button_font.render("Retry", True, BLACK)
-    screen.blit(retry_text, (retry_button_rect.x + 10, retry_button_rect.y + 5))
+    screen.blit(retry_text, (retry_button_rect.x + 10, retry_button_rect.y + 10))
 
     # 終了ボタン
     pygame.draw.rect(
         screen, GREEN if selected_button == QUIT_BUTTON else WHITE, quit_button_rect
     )
     quit_text = button_font.render("Quit", True, BLACK)
-    screen.blit(quit_text, (quit_button_rect.x + 10, quit_button_rect.y + 5))
+    screen.blit(quit_text, (quit_button_rect.x + 10, quit_button_rect.y + 10))
 
     pygame.display.flip()
 
@@ -97,7 +93,7 @@ def show_game_over(selected_button: str) -> None:
 def reset_game(player: Player, init: bool = False) -> None:
     """ゲームの状態をリセットする関数"""
     global player_beams, enemy_beams, enemies, explosions
-    player_beams= []
+    player_beams = []
     enemy_beams = []
     enemies = []
     explosions = []
@@ -106,7 +102,7 @@ def reset_game(player: Player, init: bool = False) -> None:
     pygame.mixer.music.play(-1)  # ゲーム再開時に元のBGMを再生
 
 
-def draw_explosions(explosions: list[EnemyExplosion|PlayerExplosion]) -> None:
+def draw_explosions(explosions: list[EnemyExplosion | PlayerExplosion]) -> None:
     """爆発エフェクトを描画する関数"""
     for explosion in explosions:
         explosion.draw(screen)
@@ -149,6 +145,10 @@ def main() -> None:
     selected_button = RETRY_BUTTON  # 初期選択ボタン
     clock = pygame.time.Clock()
 
+    # フィーバータイム点滅イベント
+    pygame.time.set_timer(FEVER_BLINK_TIMEER_EVENT, FEVER_TEXT_BLINK_TIME)
+    show_fever = False
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -179,12 +179,25 @@ def main() -> None:
             # 画面の描画
             screen.blit(background_img, (0, 0))  # 背景画像を描画
             # スコアとライフの描画
-            score_text = font.render(f"Score: {player.score}", True, WHITE)
-            lives_text = font.render(f"Lives: {player.lives}", True, WHITE)
+            score_text = base_font.render(f"Score: {player.score}", True, WHITE)
+            lives_text = base_font.render(f"Lives: {player.lives}", True, WHITE)
             screen.blit(
                 score_text, (SCREEN_WIDTH - score_text.get_width() - 10, 10)
             )  # スコアを右上に表示
             screen.blit(lives_text, (10, 10))  # ライフを左上に表示
+
+            # フィーバータイムの表示
+            if event.type == FEVER_BLINK_TIMEER_EVENT and shooting_time:
+                show_fever = not show_fever
+            if shooting_time and show_fever:
+                fever_text = fever_font.render("FEVER TIME", True, RED)
+                screen.blit(
+                    fever_text,
+                    (
+                        SCREEN_WIDTH // 2 - fever_text.get_width() // 2,
+                        SCREEN_HEIGHT // 2 - fever_text.get_height() // 2,
+                    ),
+                )
 
             # 移動もしくはビーム発射
             player_beams_new = player.key_handler()
@@ -222,8 +235,10 @@ def main() -> None:
                         if check_collision(enemy, player_beam):
                             explosions.append(enemy.explosion())
                             player_beams.remove(player_beam)
+                            player.score_up(
+                                SCORE_PER_HIT * 2 if enemy.is_shooter else SCORE_PER_HIT
+                            )
                             enemies.remove(enemy)
-                            player.score_up()
                             break
             # 敵ビームループ
             if not player.hit:
@@ -250,20 +265,20 @@ def main() -> None:
             # 爆発の更新
             draw_explosions(explosions)
 
-            #放射ビーム発射ゲージアップ
+            # 放射ビーム発射ゲージアップ
             player.shooting_gage_up()
-            #BGM切り替え
+            # BGM切り替え
             if (not shooting_time) and (player.shooting_gage >= PLAEYR_SHOOTER_TIME[0]):
                 pygame.mixer.music.load(SHOOTING_TIME_MUSIC)
                 pygame.mixer.music.play(-1)
                 shooting_time = True
             elif shooting_time and (player.shooting_gage < PLAEYR_SHOOTER_TIME[0]):
                 pygame.mixer.music.load(BACKGROUND_MUSIC)
-                pygame.mixer.music.play(-1) 
+                pygame.mixer.music.play(-1)
                 shooting_time = False
 
             pygame.display.flip()
-            clock.tick(60)
+            clock.tick(TIME_PER_FRAME)
 
             if player.hit:
                 time.sleep(PLAYER_HIT_SLEEP_TIME)  # 3秒間スリープ
@@ -276,5 +291,7 @@ def main() -> None:
     pygame.quit()
 
 
+if __name__ == "__main__":
+    main()
 if __name__ == "__main__":
     main()

@@ -1,11 +1,21 @@
 from typing import Tuple
 
+import pygame
 
 DEBUG_MODE: bool = False
 
 # 画面の設定
 SCREEN_WIDTH: int = 800
 SCREEN_HEIGHT: int = 600
+
+#1フレームの時間（ミリ秒）
+TIME_PER_FRAME: int = 60
+#フィーバータイム文字表示感覚
+FEVER_TEXT_BLINK_TIME:int = TIME_PER_FRAME*6
+
+#タイマーイベント
+FEVER_BLINK_TIMEER_EVENT = pygame.USEREVENT + 1
+ENEMY_BIRTH_EVENT = pygame.USEREVENT + 2
 
 # 色の定義
 WHITE: Tuple[int, int, int] = (255, 255, 255)
@@ -28,8 +38,8 @@ PLAEYR_SHOOTER_TIME = (700,1000)
 ENEMY_WIDTH: int = 50
 ENEMY_HEIGHT: int = 50
 ENEMY_SPEED: int = -3
-ENEMY_PROB_PER_FRAME_RECIP: int = 20  # フレーム毎の敵の出現確率の逆数
-SHOOTER_PROB_PER_ENEMY_RECIP: int = 5  # 放射ビームを撃つ敵の出現確率の逆数
+ENEMY_PROB_PER_FRAME_RECIP: int = 30  # フレーム毎の敵の出現確率の逆数
+SHOOTER_PROB_PER_ENEMY_RECIP: int = 10  # 放射ビームを撃つ敵の出現確率の逆数
 
 # ビームの設定
 PLAYER_BEAM_WIDTH: int = 20  # 横長の楕円の幅
@@ -62,6 +72,7 @@ EXPLOSION_IMAGE: str = "images/explosion.png"
 BACKGROUND_IMAGE: str = "images/background.png"
 PLAYER_BEAM_IMAGE: str = "images/player_beam.png"
 ENEMY_BEAM_IMAGE: str = "images/enemy_beam.png"
+FONT: str ="fonts/Montserrat-ExtraBold.ttf"
 
 # ボタンの選択肢
 RETRY_BUTTON: str = "retry"
