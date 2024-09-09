@@ -2,3 +2,10 @@
 __pycache__/
 local/
 build/
+sounds/background_music.mp3
+sounds/beam_fire.mp3
+sounds/enemy_explosion.mp3
+sounds/game_over_music.mp3
+sounds/player_explosion.mp3
+sounds/shooting_tiime_musinc.mp3
+
